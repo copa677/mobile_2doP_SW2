@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   FlatList,
   Alert,
   Modal,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Radius, Spacing } from '@/constants/theme';
@@ -28,6 +30,22 @@ export default function ReceptionistManualScreen() {
   const [selectedMotivo, setSelectedMotivo] = useState(MOTIVOS[0]);
   const [modalVisible, setModalVisible] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadRealData = async () => {
+    await receptionService.cargarDatosReales();
+    setSocios(receptionService.buscarSocios(searchQuery));
+  };
+
+  useEffect(() => {
+    loadRealData();
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadRealData();
+    setRefreshing(false);
+  };
 
   const handleSearch = (text: string) => {
     setSearchQuery(text);
@@ -62,11 +80,11 @@ export default function ReceptionistManualScreen() {
     return (
       <View style={styles.socioCard}>
         <View style={styles.socioHeader}>
-          <View>
-            <Text style={styles.socioName}>
+          <View style={styles.socioTextContainer}>
+            <Text style={styles.socioName} numberOfLines={1} ellipsizeMode="tail">
               {item.nombre} {item.apellido}
             </Text>
-            <Text style={styles.socioMeta}>
+            <Text style={styles.socioMeta} numberOfLines={1} ellipsizeMode="tail">
               C.I.: <Text style={styles.boldText}>{item.ci}</Text>
               {'  •  '}
               Cód: <Text style={styles.boldText}>{item.codigoSocio}</Text>
@@ -97,7 +115,7 @@ export default function ReceptionistManualScreen() {
         <View style={styles.socioDetails}>
           <View style={styles.detailPill}>
             <Ionicons name="barbell-outline" size={13} color={Colors.accentSecondary} />
-            <Text style={styles.detailPillText}>{item.disciplina}</Text>
+            <Text style={styles.detailPillText} numberOfLines={1}>{item.disciplina}</Text>
           </View>
           <View style={styles.detailPill}>
             <Ionicons name="calendar-outline" size={13} color={Colors.textSecondary} />
@@ -153,10 +171,18 @@ export default function ReceptionistManualScreen() {
         renderItem={renderSocioItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={Colors.accentWarning}
+            colors={[Colors.accentWarning]}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="person-circle-outline" size={48} color={Colors.textMuted} />
-            <Text style={styles.emptyText}>No se encontraron socios coincidentes</Text>
+            <Text style={styles.emptyText}>No se encontraron socios registrados</Text>
           </View>
         }
       />
@@ -281,11 +307,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.borderSubtle,
     gap: 12,
+    overflow: 'hidden',
   },
   socioHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    gap: 8,
+  },
+  socioTextContainer: {
+    flex: 1,
+    marginRight: 8,
   },
   socioName: {
     fontSize: 16,
@@ -302,10 +334,12 @@ const styles = StyleSheet.create({
     color: Colors.accentCream,
   },
   statusBadge: {
+    flexShrink: 0,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: Radius.full,
     borderWidth: 1,
+    alignSelf: 'flex-start',
   },
   statusBadgeText: {
     fontSize: 10,

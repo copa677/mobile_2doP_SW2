@@ -85,12 +85,16 @@ export async function processUserQuery(
   if (combinedRawMetrics['obtener_socios_en_riesgo']) {
     const r = combinedRawMetrics['obtener_socios_en_riesgo'];
     narrative += `⚠️ **Alerta de Retención (Socios en Riesgo):**\n`;
-    narrative += `Se detectaron **${r.total_en_riesgo} socios activos** que llevan más de ${r.criterio_dias} días sin registrar check-in.\n`;
-    if (r.socios_muestra && r.socios_muestra.length > 0) {
-      narrative += `Socios con mayor tiempo de inactividad que requieren contacto inmediato:\n`;
-      r.socios_muestra.slice(0, 3).forEach((s: any) => {
-        narrative += `- **${s.nombre}** (${s.numero_socio}): ${s.dias_inactivo} días inactivo (último ingreso: ${s.ultimo_checkin.split(' ')[0]}).\n`;
-      });
+    if (r.total_en_riesgo > 0) {
+      narrative += `Se detectaron **${r.total_en_riesgo} socios activos** que llevan más de ${r.criterio_dias} días sin registrar check-in.\n`;
+      if (r.socios_muestra && r.socios_muestra.length > 0) {
+        narrative += `Socios con mayor tiempo de inactividad que requieren contacto inmediato:\n`;
+        r.socios_muestra.slice(0, 3).forEach((s: any) => {
+          narrative += `- **${s.nombre}** (${s.numero_socio}): ${s.dias_inactivo} días inactivo (último ingreso: ${s.ultimo_checkin.split(' ')[0]}).\n`;
+        });
+      }
+    } else {
+      narrative += `¡Excelente retención! No hay socios activos con más de ${r.criterio_dias} días sin registrar check-in.\n`;
     }
     narrative += `\n`;
   }
@@ -98,9 +102,13 @@ export async function processUserQuery(
   if (combinedRawMetrics['obtener_top_productos']) {
     const p = combinedRawMetrics['obtener_top_productos'];
     narrative += `🏆 **Productos Más Vendidos en Tienda:**\n`;
-    p.top.forEach((item: any, idx: number) => {
-      narrative += `${idx + 1}. **${item.nombre}**: ${item.unidades_vendidas} unidades vendidas (Bs ${Number(item.ingresos_totales).toLocaleString()}).\n`;
-    });
+    if (p.top && p.top.length > 0) {
+      p.top.forEach((item: any, idx: number) => {
+        narrative += `${idx + 1}. **${item.nombre}**: ${item.unidades_vendidas} unidades vendidas (Bs ${Number(item.ingresos_totales).toLocaleString()}).\n`;
+      });
+    } else {
+      narrative += `No se registran ventas de tienda o mostrador en el periodo seleccionado.\n`;
+    }
     narrative += `\n`;
   }
 

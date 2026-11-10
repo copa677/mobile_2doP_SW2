@@ -1,4 +1,4 @@
-import { bffService } from '@/services/bff/apiClient';
+import { bffService, executeMcpTool } from '@/services/bff/apiClient';
 
 export interface ToolDefinition {
   name: string;
@@ -57,6 +57,49 @@ export const REGISTERED_TOOLS: ToolDefinition[] = [
         dias: { type: 'integer', description: 'Periodo de días a analizar, ej 30' }
       }
     }
+  },
+  {
+    name: 'reporte_recaudacion',
+    description: 'Consulta de ingresos y cobros confirmados en ms-mcp para auditar recaudación en Bs.',
+    parameters: {
+      type: 'object',
+      properties: {
+        fecha: { type: 'string', description: 'Fecha YYYY-MM-DD. Opcional, por defecto hoy.' }
+      }
+    }
+  },
+  {
+    name: 'reporte_asistencias',
+    description: 'Consulta accesos por torniquetes, afluencia y picos de asistencia en ms-mcp.',
+    parameters: {
+      type: 'object',
+      properties: {
+        fecha_inicio: { type: 'string', description: 'Fecha inicio YYYY-MM-DD' },
+        fecha_fin: { type: 'string', description: 'Fecha fin YYYY-MM-DD' }
+      }
+    }
+  },
+  {
+    name: 'reporte_fallas_mantenimiento',
+    description: 'Consulta máquinas averiadas y alertas de mantenimiento técnico desde ms-inventario a través de ms-mcp.',
+    parameters: {
+      type: 'object',
+      properties: {
+        solo_averiados: { type: 'boolean', description: 'Filtrar sólo equipos averiados' }
+      }
+    }
+  },
+  {
+    name: 'exportar_reporte',
+    description: 'Genera un documento PDF o CSV de cualquier reporte analítico de ms-mcp para descarga.',
+    parameters: {
+      type: 'object',
+      properties: {
+        herramienta: { type: 'string', description: 'Nombre de la herramienta MCP a exportar' },
+        formato: { type: 'string', enum: ['PDF', 'CSV'], description: 'Formato de salida' }
+      },
+      required: ['herramienta']
+    }
   }
 ];
 
@@ -108,7 +151,51 @@ export async function executeTool(toolName: string, args: Record<string, any> = 
         summaryText: `Ocupación clases (últimos ${data.periodo_dias} días): ${topClasses}`
       };
     }
-    default:
-      throw new Error(`Herramienta desconocida: ${toolName}`);
+    case 'reporte_recaudacion': {
+      const data = await executeMcpTool('reporte_recaudacion', args);
+      const rec = data?.totales?.total_recaudado_bob ?? data?.totales?.total_membresias_bob ?? '0.00';
+      return {
+        toolName,
+        rawData: data,
+        summaryText: `Recaudación efectiva: Bs ${rec}. Total cobros registrados: ${data?.total_filas ?? 0}. Cobertura: ${data?.cobertura || 'ms-gimnasio'}`
+      };
+    }
+    case 'reporte_asistencias': {
+      const data = await executeMcpTool('reporte_asistencias', args);
+      const total = data?.totales?.total_asistencias ?? data?.total_filas ?? 0;
+      return {
+        toolName,
+        rawData: data,
+        summaryText: `Accesos por torniquete registrados: ${total} personas. Horario pico: ${data?.totales?.franja_pico || 'N/D'}`
+      };
+    }
+    case 'reporte_fallas_mantenimiento': {
+      const data = await executeMcpTool('reporte_fallas_mantenimiento', args);
+      return {
+        toolName,
+        rawData: data,
+        summaryText: `Equipos con estado de avería o mantenimiento: ${data?.total_filas ?? 0} máquinas.`
+      };
+    }
+    case 'exportar_reporte': {
+      const data = await bffService.exportReport(args.herramienta, args.parametros || {}, args.formato || 'PDF');
+      return {
+        toolName,
+        rawData: data,
+        summaryText: data ? `Archivo generado con éxito: ${data.filename}. Listo para descarga.` : 'No se pudo generar el archivo exportado.'
+      };
+    }
+    default: {
+      try {
+        const data = await executeMcpTool(toolName, args);
+        return {
+          toolName,
+          rawData: data,
+          summaryText: `Reporte ${toolName} ejecutado: ${data?.total_filas ?? 0} registros obtenidos.`
+        };
+      } catch (err: any) {
+        throw new Error(`Herramienta desconocida o error en ms-mcp: ${toolName} - ${err.message}`);
+      }
+    }
   }
 }

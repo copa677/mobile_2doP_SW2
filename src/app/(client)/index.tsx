@@ -16,6 +16,7 @@ import { clientService } from '@/services/client/clientService';
 import { MembershipInfo } from '@/types/client';
 import { useRouter } from 'expo-router';
 import { LogoutConfirmModal } from '@/components/common/LogoutConfirmModal';
+import { notificationService } from '@/services/notifications/notificationService';
 
 export default function ClientMembershipScreen() {
   const router = useRouter();
@@ -43,6 +44,14 @@ export default function ClientMembershipScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     loadData();
+  };
+
+  const handleTestPush = async () => {
+    await notificationService.sendLocalNotification(
+      '¡Acceso Registrado en Apex! 🏋️',
+      `Bienvenido ${user?.nombre || 'Socio'}. Acceso verificado a Sala Principal a las ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+      { screen: '/(client)/history' }
+    );
   };
 
   const handleConfirmLogout = async () => {
@@ -175,6 +184,12 @@ export default function ClientMembershipScreen() {
                 <Text style={styles.shortcutSub}>Racha y registros</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Botón de Prueba de Notificación */}
+            <TouchableOpacity style={styles.testPushBtn} onPress={handleTestPush} activeOpacity={0.8}>
+              <Ionicons name="notifications-outline" size={18} color={Colors.accentSage} />
+              <Text style={styles.testPushBtnText}>Probar Notificación de Acceso</Text>
+            </TouchableOpacity>
 
             {/* Botón de Cerrar Sesión Destacado */}
             <TouchableOpacity style={styles.logoutBtn} onPress={() => setShowLogoutModal(true)} activeOpacity={0.8}>
@@ -413,6 +428,23 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 2,
   },
+  testPushBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(144, 171, 139, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(144, 171, 139, 0.35)',
+    borderRadius: Radius.md,
+    paddingVertical: 14,
+    marginTop: Spacing.lg,
+    gap: 8,
+  },
+  testPushBtnText: {
+    color: Colors.accentSage,
+    fontSize: 14,
+    fontWeight: '700',
+  },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -422,7 +454,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(248, 113, 113, 0.3)',
     borderRadius: Radius.md,
     paddingVertical: 14,
-    marginTop: Spacing.xl,
+    marginTop: Spacing.md,
     gap: 8,
   },
   logoutBtnText: {

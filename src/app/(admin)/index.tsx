@@ -33,14 +33,15 @@ export default function AdminDashboardScreen() {
   const loadData = async () => {
     try {
       setErrorMsg(null);
+      const hoy = new Date();
       const [daily, fin] = await Promise.all([
         bffService.getDailyReport(),
-        bffService.getFinancialReport(2026, 11),
+        bffService.getFinancialReport(hoy.getFullYear(), hoy.getMonth() + 1),
       ]);
       setDailyData(daily);
       setFinData(fin);
     } catch (err: any) {
-      setErrorMsg('No se pudo conectar con el servidor BFF local en http://localhost:8000');
+      setErrorMsg('No se pudieron sincronizar las métricas ejecutivas en tiempo real. Desliza hacia abajo para reintentar.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -95,7 +96,7 @@ export default function AdminDashboardScreen() {
           <View style={styles.headerActions}>
             <View style={styles.modelStatusBadge}>
               <View style={styles.activeDot} />
-              <Text style={styles.modelStatusText}>Qwen Local</Text>
+              <Text style={styles.modelStatusText}>Servidor En Línea</Text>
             </View>
             <TouchableOpacity style={styles.logoutButton} onPress={() => setShowLogoutModal(true)} activeOpacity={0.7}>
               <Ionicons name="log-out-outline" size={20} color={Colors.accentCream} />

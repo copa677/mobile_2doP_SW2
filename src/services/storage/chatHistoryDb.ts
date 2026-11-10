@@ -42,10 +42,23 @@ export async function createChatSession(id: string, title: string, initialQuery:
 
 export async function getAllSessions(): Promise<ChatSession[]> {
   const db = await getChatDb();
-  const rows = await db.getAllAsync<ChatSession>(
+  let rows = await db.getAllAsync<ChatSession>(
     'SELECT * FROM chat_sessions ORDER BY created_at DESC'
   );
+
+  if (rows.length === 0) {
+    await seedInitialHistory(db);
+    rows = await db.getAllAsync<ChatSession>(
+      'SELECT * FROM chat_sessions ORDER BY created_at DESC'
+    );
+  }
+
   return rows;
+}
+
+async function seedInitialHistory(db: SQLite.SQLiteDatabase): Promise<void> {
+  // Inicialización limpia sin registros ficticios de prueba.
+  // El historial se poblará exclusivamente con las consultas reales del administrador.
 }
 
 export async function getSessionMessages(sessionId: string): Promise<ChatMessage[]> {

@@ -95,7 +95,8 @@ export default function ClientDigitalPassScreen() {
 
   const generatePass = useCallback(async () => {
     try {
-      const data = await clientService.getDigitalPassInfo(user?.id, user?.codigo);
+      const fullName = user?.nombre ? `${user.nombre} ${user.apellido || ''}`.trim() : undefined;
+      const data = await clientService.getDigitalPassInfo(user?.id, user?.codigo, fullName, user?.ci);
       setPassData(data);
       setLastUpdated(new Date());
     } catch (err) {

@@ -41,11 +41,25 @@ export default function WorkoutsScreen() {
     }
   };
 
-  const handleToggleExercise = async (exerciseId: string) => {
-    await clientService.toggleExercise(selectedDayIndex, exerciseId);
-    // Refresh local copy
-    const data = await clientService.getMyWorkouts(user?.id);
-    setRoutines(data);
+  const handleToggleExercise = (exerciseId: string) => {
+    // 1. Notificar al servicio para actualizar el registro en memoria
+    clientService.toggleExercise(selectedDayIndex, exerciseId);
+
+    // 2. Actualización instantánea en el estado de React sin parpadeo de red
+    setRoutines((prevRoutines) => {
+      return prevRoutines.map((routine, rIdx) => {
+        if (rIdx !== selectedDayIndex) return routine;
+        return {
+          ...routine,
+          ejercicios: routine.ejercicios.map((ex) => {
+            if (ex.id === exerciseId) {
+              return { ...ex, completado: !ex.completado };
+            }
+            return ex;
+          }),
+        };
+      });
+    });
   };
 
   if (loading) {
@@ -159,15 +173,13 @@ export default function WorkoutsScreen() {
                 activeOpacity={0.8}
               >
                 <View style={styles.exerciseLeft}>
-                  <TouchableOpacity
+                  <View
                     style={[styles.checkbox, exercise.completado && styles.checkboxCompleted]}
-                    onPress={() => handleToggleExercise(exercise.id)}
-                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   >
                     {exercise.completado && (
                       <Ionicons name="checkmark" size={16} color={Colors.forestDeep} />
                     )}
-                  </TouchableOpacity>
+                  </View>
 
                   <View style={styles.exerciseInfo}>
                     <Text

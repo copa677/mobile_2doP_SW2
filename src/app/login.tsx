@@ -27,9 +27,9 @@ export default function LoginScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<'identifier' | 'password' | null>(null);
 
-  const handleLogin = async (customId?: string, customPass?: string) => {
-    const idToUse = customId || identifier.trim();
-    const passToUse = customPass || password;
+  const handleLogin = async () => {
+    const idToUse = identifier.trim();
+    const passToUse = password;
 
     if (!idToUse || !passToUse) {
       setErrorMsg('Por favor completa todos los campos');
@@ -51,12 +51,6 @@ export default function LoginScreen() {
     } catch (err: any) {
       setErrorMsg(err.message || 'Error al autenticar credenciales');
     }
-  };
-
-  const handleQuickFill = (email: string) => {
-    setIdentifier(email);
-    setPassword('Password123!');
-    handleLogin(email, 'Password123!');
   };
 
   return (
@@ -159,7 +153,7 @@ export default function LoginScreen() {
             {/* Botón Principal */}
             <TouchableOpacity
               style={[styles.loginBtn, isLoading && styles.loginBtnDisabled]}
-              onPress={() => handleLogin()}
+              onPress={handleLogin}
               disabled={isLoading}
               activeOpacity={0.8}
             >
@@ -172,39 +166,6 @@ export default function LoginScreen() {
                 </>
               )}
             </TouchableOpacity>
-
-            {/* Separador de Cuentas Rápidas */}
-            <View style={styles.quickAccessSection}>
-              <Text style={styles.quickAccessTitle}>Cuentas de Acceso Rápido (Pruebas):</Text>
-              <View style={styles.chipsContainer}>
-                <TouchableOpacity
-                  style={styles.quickChip}
-                  onPress={() => handleQuickFill('admin@apexfitness.com')}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="shield-checkmark" size={14} color={Colors.accentSage} />
-                  <Text style={styles.quickChipText}>👑 Administrador</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.quickChip}
-                  onPress={() => handleQuickFill('cliente@apexfitness.com')}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="fitness" size={14} color={Colors.accentSecondary} />
-                  <Text style={styles.quickChipText}>🏋️ Socio (Cliente)</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.quickChip}
-                  onPress={() => handleQuickFill('recepcion@apexfitness.com')}
-                  disabled={isLoading}
-                >
-                  <Ionicons name="clipboard" size={14} color={Colors.accentWarning} />
-                  <Text style={styles.quickChipText}>📋 Recepcionista</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -360,37 +321,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: Colors.accentCream,
-  },
-  quickAccessSection: {
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.md,
-    borderTopColor: Colors.borderSubtle,
-    borderTopWidth: 1,
-  },
-  quickAccessTitle: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    marginBottom: Spacing.sm,
-  },
-  chipsContainer: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    flexWrap: 'wrap',
-  },
-  quickChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surfaceElevated,
-    borderColor: Colors.borderSubtle,
-    borderWidth: 1,
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
-    gap: 6,
-  },
-  quickChipText: {
-    fontSize: 12,
-    color: Colors.textPrimary,
-    fontWeight: '600',
   },
 });

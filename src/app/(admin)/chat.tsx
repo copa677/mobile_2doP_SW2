@@ -39,6 +39,7 @@ export default function AdminChatScreen() {
   const [loading, setLoading] = useState<boolean>(false);
   const [activeStep, setActiveStep] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string>(() => `sess_${Date.now()}`);
+  const [sessionCreated, setSessionCreated] = useState<boolean>(false);
   const flatListRef = useRef<FlatList>(null);
 
   const handleSend = async (customPrompt?: string) => {
@@ -57,6 +58,14 @@ export default function AdminChatScreen() {
     setActiveStep('Analizando intención y seleccionando herramientas de consulta...');
 
     try {
+      // 1. Asegurar que la sesión exista en la tabla SQLite de historial
+      if (!sessionCreated) {
+        const title = textToSend.length > 35 ? textToSend.substring(0, 35) + '...' : textToSend;
+        await createChatSession(sessionId, title, textToSend);
+        setSessionCreated(true);
+      }
+
+      // 2. Guardar el mensaje del usuario
       await insertMessage(sessionId, 'user', textToSend);
 
       const result = await processUserQuery(textToSend, (step) => {
@@ -72,6 +81,7 @@ export default function AdminChatScreen() {
 
       setMessages((prev) => [...prev, assistantMsg]);
 
+      // 3. Guardar la respuesta ejecutiva de la IA con las herramientas usadas
       await insertMessage(
         sessionId,
         'assistant',
@@ -94,6 +104,7 @@ export default function AdminChatScreen() {
   const handleNewSession = async () => {
     const newId = `sess_${Date.now()}`;
     setSessionId(newId);
+    setSessionCreated(false);
     setMessages([
       {
         id: 'welcome',

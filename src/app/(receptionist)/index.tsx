@@ -58,12 +58,6 @@ export default function ReceptionistScannerScreen() {
     }
   };
 
-  const handleSimulateScan = () => {
-    handleBarcodeScanned({
-      data: `APEX_QR_CLI-001_${Date.now()}_HMAC_VALID`,
-    });
-  };
-
   const handleCloseModal = () => {
     setResult(null);
     setScanned(false);
@@ -231,24 +225,17 @@ export default function ReceptionistScannerScreen() {
         {Platform.OS === 'web' ? (
           <View style={styles.webFallbackContainer}>
             <Ionicons name="scan" size={64} color={Colors.accentWarning} />
-            <Text style={styles.webFallbackTitle}>Modo Torniquete Virtual</Text>
+            <Text style={styles.webFallbackTitle}>Modo Torniquete en Móvil</Text>
             <Text style={styles.webFallbackSubtitle}>
-              Simula el escaneo con la cámara del dispositivo móvil para validar códigos QR de socios.
+              El escaneo óptico por torniquete requiere la cámara física del smartphone (Android o iOS). En este dispositivo puedes registrar accesos mediante el modo manual.
             </Text>
             <TouchableOpacity
-              style={styles.simulateScanBtn}
-              onPress={handleSimulateScan}
-              disabled={processing}
+              style={styles.manualFallbackBtn}
+              onPress={() => router.push('/(receptionist)/manual' as any)}
               activeOpacity={0.8}
             >
-              {processing ? (
-                <ActivityIndicator color={Colors.accentCream} />
-              ) : (
-                <>
-                  <Ionicons name="qr-code-outline" size={20} color={Colors.accentCream} />
-                  <Text style={styles.simulateScanBtnText}>Simular Escaneo de Socio</Text>
-                </>
-              )}
+              <Ionicons name="keypad-outline" size={20} color={Colors.accentCream} />
+              <Text style={styles.manualFallbackBtnText}>Ir a Acceso Manual por CI</Text>
             </TouchableOpacity>
           </View>
         ) : !permission ? (
@@ -323,13 +310,12 @@ export default function ReceptionistScannerScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.simulateQuickBtn}
-          onPress={handleSimulateScan}
-          disabled={processing}
+          style={styles.manualQuickBtn}
+          onPress={() => router.push('/(receptionist)/manual' as any)}
           activeOpacity={0.8}
         >
-          <Ionicons name="barcode-outline" size={20} color={Colors.accentCream} />
-          <Text style={styles.simulateQuickText}>Simular Pase QR</Text>
+          <Ionicons name="keypad-outline" size={18} color={Colors.textPrimary} />
+          <Text style={styles.manualQuickText}>Ingreso Manual CI</Text>
         </TouchableOpacity>
       </View>
 
@@ -503,7 +489,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.textSecondary,
   },
-  simulateQuickBtn: {
+  manualQuickBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -511,12 +497,14 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 12,
     borderRadius: Radius.md,
-    backgroundColor: Colors.accentWarning,
+    backgroundColor: Colors.surfaceCard,
+    borderWidth: 1,
+    borderColor: Colors.borderSubtle,
   },
-  simulateQuickText: {
+  manualQuickText: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#0f171c',
+    fontWeight: '700',
+    color: Colors.textPrimary,
   },
   webFallbackContainer: {
     flex: 1,
@@ -538,19 +526,19 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
     lineHeight: 18,
   },
-  simulateScanBtn: {
+  manualFallbackBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: Colors.accentWarning,
+    backgroundColor: Colors.accentPrimary,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: Radius.md,
   },
-  simulateScanBtnText: {
+  manualFallbackBtnText: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#0f171c',
+    fontWeight: '700',
+    color: Colors.accentCream,
   },
   permissionBox: {
     flex: 1,

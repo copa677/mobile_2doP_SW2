@@ -25,7 +25,8 @@ export default function ReceptionistHistoryScreen() {
   });
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadData = () => {
+  const loadData = async () => {
+    await receptionService.cargarDatosReales();
     setLogs(receptionService.obtenerHistorial());
     setAforo(receptionService.obtenerAforo());
   };
@@ -34,9 +35,9 @@ export default function ReceptionistHistoryScreen() {
     loadData();
   }, []);
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setRefreshing(true);
-    loadData();
+    await loadData();
     setRefreshing(false);
   };
 

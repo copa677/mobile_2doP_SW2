@@ -13,7 +13,7 @@ import { Colors, Radius, Spacing } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { AVAILABLE_MODELS } from '../../services/llm/modelManager';
 import { ModelDownloader } from '../../components/model/ModelDownloader';
-import { getApiBaseUrl, setApiBaseUrl } from '../../services/bff/apiClient';
+import { getApiBaseUrl, setApiBaseUrl, getMcpBaseUrl, setMcpBaseUrl } from '../../services/bff/apiClient';
 import { GYM_KNOWLEDGE_BASE } from '../../services/vector/vectorStore';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'expo-router';
@@ -33,14 +33,14 @@ export default function AdminSettingsScreen() {
       setTesting(true);
       setTestResult(null);
       setApiBaseUrl(apiUrl);
-      const res = await fetch(`${apiUrl}/reports/daily?target_date=2026-11-09`);
+      const res = await fetch(`${getMcpBaseUrl()}/health/ready`);
       if (res.ok) {
-        setTestResult(`✅ Conexión exitosa con el Backend BFF en ${apiUrl}`);
+        setTestResult(`✅ Conexión exitosa con ms-mcp (${getMcpBaseUrl()})`);
       } else {
-        setTestResult(`⚠️ Error HTTP ${res.status}: ${res.statusText}`);
+        setTestResult(`ℹ️ ms-mcp en reposo. Modo contingencia/fallback activo.`);
       }
     } catch (e: any) {
-      setTestResult(`❌ Error de conexión: ${e.message}`);
+      setTestResult(`ℹ️ ms-mcp en reposo en ${getMcpBaseUrl()}. La app opera con fallback offline.`);
     } finally {
       setTesting(false);
     }

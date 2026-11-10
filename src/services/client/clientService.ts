@@ -8,6 +8,9 @@ import { API_ENDPOINTS } from '../config/endpoints';
 import { fetchGraphQL } from '../graphql/graphqlClient';
 
 class ClientService {
+  // Registro en memoria de ejercicios marcados como completados por el socio en la sesión
+  private completedExerciseIds: Set<string> = new Set<string>();
+
   private fallbackAttendances: AttendanceRecord[] = [
     {
       id: 'att-001',
@@ -173,7 +176,7 @@ class ClientService {
         };
       }
     } catch (err: any) {
-      console.warn('[clientService] ms-gimnasio no disponible o sin inscripción activa, usando caché local:', err.message);
+      console.log('ℹ️ [clientService] ms-gimnasio no disponible o sin inscripción activa, usando membresía en caché:', err.message);
     }
 
     return { ...this.fallbackMembership };
@@ -182,7 +185,7 @@ class ClientService {
   /**
    * Obtiene el código QR criptográfico dinámico desde ms-gimnasio (obtenerQrPaseDigital)
    */
-  async getDigitalPassInfo(userId?: string, codigoSocio?: string) {
+  async getDigitalPassInfo(userId?: string, codigoSocio?: string, socioNombre?: string, ci?: string) {
     const mem = await this.getMyMembership(userId);
     let qrToken = `APEX_QR_${codigoSocio || mem.codigoSocio}_${Date.now()}_HMAC_VALID`;
 
@@ -202,15 +205,15 @@ class ClientService {
         qrToken = data.obtenerQrPaseDigital;
       }
     } catch (err: any) {
-      console.warn('[clientService] Usando token QR generado localmente:', err.message);
+      console.log('ℹ️ [clientService] Usando token QR generado localmente:', err.message);
     }
 
     return {
       membership: mem,
       qrToken,
       validoHasta: 'Hoy 23:59',
-      socioNombre: 'Carlos Socio',
-      ci: '1000004',
+      socioNombre: socioNombre || (codigoSocio === 'CLI-6305913' ? 'Brayan Quispe' : 'Carlos Socio'),
+      ci: ci || (codigoSocio === 'CLI-6305913' ? '6305913' : '1000004'),
     };
   }
 
@@ -286,38 +289,63 @@ class ClientService {
             diaSemana: diaDisplay || `Día ${index + 1}`,
             titulo: `${r?.nombre || 'Rutina de Fuerza'} (${r?.nivel || 'Intermedio'})`,
             esDiaHoy: esHoy,
-            ejercicios: (r?.rutinaEjercicios || []).map((re: any) => ({
-              id: re.id || `ex-${Math.random()}`,
-              nombre: re.ejercicio?.nombre || 'Ejercicio Guía',
-              series: re.series || 4,
-              repeticiones: String(re.repeticiones || '10'),
-              pesoSugerido: 'Carga según plan',
-              descansoSegundos: re.descansoSegundos || 60,
-              grupoMuscular: re.ejercicio?.equipamiento || 'Musculación',
-              notas: re.ejercicio?.nivelDificultad ? `Dificultad: ${re.ejercicio.nivelDificultad}` : '',
-              completado: false,
-            })),
+            ejercicios: (r?.rutinaEjercicios || []).map((re: any, exIdx: number) => {
+              const exId = String(re.id || `re-${re.orden || exIdx}`);
+              return {
+                id: exId,
+                nombre: re.ejercicio?.nombre || 'Ejercicio Guía',
+                series: re.series || 4,
+                repeticiones: String(re.repeticiones || '10'),
+                pesoSugerido: 'Carga según plan',
+                descansoSegundos: re.descansoSegundos || 60,
+                grupoMuscular: re.ejercicio?.equipamiento || 'Musculación',
+                notas: re.ejercicio?.nivelDificultad ? `Dificultad: ${re.ejercicio.nivelDificultad}` : '',
+                completado: this.completedExerciseIds.has(exId),
+              };
+            }),
           };
         });
         return dias;
       }
     } catch (err: any) {
-      console.warn('[clientService] ms-entrenamiento GraphQL no disponible, usando rutinas locales:', err.message);
+      console.log('ℹ️ [clientService] ms-entrenamiento GraphQL en reposo, usando rutinas locales:', err.message);
     }
 
-    return JSON.parse(JSON.stringify(this.fallbackRoutines));
+    const routinesCopy: WorkoutDayRoutine[] = JSON.parse(JSON.stringify(this.fallbackRoutines));
+    return routinesCopy.map((r) => ({
+      ...r,
+      ejercicios: r.ejercicios.map((e) => ({
+        ...e,
+        completado: this.completedExerciseIds.has(e.id),
+      })),
+    }));
   }
 
   async toggleExercise(dayIndex: number, exerciseId: string): Promise<boolean> {
+    const id = String(exerciseId);
+    let isNowCompleted = false;
+
+    if (this.completedExerciseIds.has(id)) {
+      this.completedExerciseIds.delete(id);
+      isNowCompleted = false;
+    } else {
+      this.completedExerciseIds.add(id);
+      isNowCompleted = true;
+    }
+
+    // Mantener sincronizado fallbackRoutines en memoria
     const routine = this.fallbackRoutines[dayIndex];
-    if (!routine) return false;
-    const exercise = routine.ejercicios.find((e) => e.id === exerciseId);
-    if (!exercise) return false;
-    exercise.completado = !exercise.completado;
-    return exercise.completado;
+    if (routine) {
+      const exercise = routine.ejercicios.find((e) => String(e.id) === id);
+      if (exercise) {
+        exercise.completado = isNowCompleted;
+      }
+    }
+
+    return isNowCompleted;
   }
 
-  async processQrCheckin(qrData: string): Promise<QrCheckinResult> {
+  async processQrCheckin(qrData: string, socioNombre = 'Brayan Quispe (CLI-6305913)'): Promise<QrCheckinResult> {
     const now = new Date();
     const horaStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const fechaStr = now.toISOString().split('T')[0];
@@ -338,7 +366,7 @@ class ClientService {
       exitoso: true,
       mensaje: '¡Asistencia registrada con éxito! Disfruta tu entrenamiento.',
       detalles: {
-        socio: 'Carlos Socio (CLI-001)',
+        socio: socioNombre,
         disciplina: 'Musculación y Fuerza',
         fechaHora: `${fechaStr} a las ${horaStr}`,
         estadoPlan: 'Membresía VIGENTE',
